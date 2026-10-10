@@ -1,0 +1,38 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v4
+
+      - name: Setup Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: "pip"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Jalankan test
+        env:
+          GROQ_API_KEY: dummy-key-for-ci
+        run: pytest -v
+
+      - name: Cek import aplikasi berhasil
+        env:
+          GROQ_API_KEY: dummy-key-for-ci
+        run: python -c "from app.main import app; print('Import OK, total routes:', len(app.routes))"

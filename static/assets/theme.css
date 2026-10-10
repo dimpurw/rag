@@ -1,0 +1,186 @@
+/* ============================================
+   Pustaka — Shared Design System
+   ============================================ */
+:root {
+  --ink: #14161B;
+  --ink-2: #1D2027;
+  --ink-border: #2B2F38;
+  --ink-muted: #8A8F9C;
+  --canvas: #F6F5F1;
+  --surface: #FFFFFF;
+  --border: #E6E3DA;
+  --text: #1B1C1A;
+  --text-muted: #6E6C64;
+  --accent: #2F5D50;
+  --accent-strong: #244A40;
+  --accent-soft: #2F5D501A;
+  --accent-tint: #EAF1EE;
+  --error: #B4483C;
+  --error-soft: #B4483C14;
+  --radius: 12px;
+  --shadow-sm: 0 1px 2px rgba(20,22,27,0.04), 0 1px 1px rgba(20,22,27,0.03);
+  --shadow-md: 0 4px 16px rgba(20,22,27,0.06), 0 1px 3px rgba(20,22,27,0.05);
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--canvas);
+  color: var(--text);
+  font-family: 'Manrope', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection { background: var(--accent-soft); }
+a { color: var(--accent-strong); }
+
+h1, h2, h3 { font-family: 'Fraunces', serif; font-weight: 500; margin: 0; }
+
+/* ---------- Buttons ---------- */
+.btn {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 600;
+  font-size: 13px;
+  border-radius: 8px;
+  border: none;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: transform 0.08s ease, opacity 0.15s ease, background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  text-decoration: none;
+}
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn svg { width: 14px; height: 14px; }
+
+.btn-primary { background: var(--accent); color: #F6F5F1; }
+.btn-primary:hover:not(:disabled) { background: var(--accent-strong); }
+
+.btn-outline { background: var(--surface); color: var(--text); border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+.btn-outline:hover:not(:disabled) { border-color: var(--accent); color: var(--accent-strong); }
+
+.btn-outline-dark { background: transparent; color: #C7CAD1; border: 1px solid var(--ink-border); }
+.btn-outline-dark:hover:not(:disabled) { border-color: #565A64; color: #FAFAF8; }
+
+/* ---------- Inputs ---------- */
+.field-input {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 9px 12px;
+  border-radius: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+.field-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+.side-input {
+  background: var(--ink-2);
+  border: 1px solid var(--ink-border);
+  color: #E7E8EC;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12.5px;
+  width: 100%;
+  transition: border-color 0.15s ease;
+}
+.side-input::placeholder { color: #565A64; }
+.side-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* ---------- Badges / pills ---------- */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-family: 'IBM Plex Mono', monospace;
+  color: #A8DDCB;
+  background: #1E332D;
+  border: 1px solid #2A4A40;
+  padding: 5px 10px;
+  border-radius: 20px;
+  width: fit-content;
+}
+.status-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #4ADE9A;
+  box-shadow: 0 0 0 3px #4ade9a26;
+}
+
+.badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  padding: 6px 12px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.badge svg { width: 12px; height: 12px; stroke: var(--accent); }
+
+/* ---------- Cards ---------- */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ---------- Nav (shared top bar across pages) ---------- */
+.site-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px 36px;
+  border-bottom: 1px solid var(--border);
+}
+.site-nav .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--text);
+}
+.site-nav .brand-icon {
+  width: 30px; height: 30px; border-radius: 8px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.site-nav .brand-icon svg { width: 16px; height: 16px; stroke: #F6F5F1; }
+.site-nav .brand-name { font-family: 'Fraunces', serif; font-size: 17px; font-weight: 600; }
+.site-nav .nav-links { display: flex; align-items: center; gap: 10px; }
+.site-nav .nav-links a.navlink {
+  font-size: 13px; font-weight: 600; color: var(--text-muted);
+  text-decoration: none; padding: 8px 12px; border-radius: 7px;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+.site-nav .nav-links a.navlink:hover { color: var(--text); background: var(--surface); }
+.site-nav .nav-links a.navlink.active { color: var(--accent-strong); background: var(--accent-tint); }
+
+/* ---------- Scrollbars ---------- */
+::-webkit-scrollbar { width: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.001ms !important; }
+}

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pustaka — Usage Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Manrope:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+  .page-header {
+    padding: 32px 36px 8px 36px;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+  .page-header .eyebrow {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: 0.08em;
+    text-transform: uppercase; color: var(--accent-strong); margin-bottom: 8px; display: block;
+  }
+  .page-header h1 { font-size: 26px; margin-bottom: 6px; }
+  .page-header p { font-size: 13.5px; color: var(--text-muted); margin: 0; }
+
+  .dash-wrap { max-width: 1080px; margin: 0 auto; padding: 24px 36px 60px 36px; }
+
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+  .stat-card {
+    padding: 22px 22px 18px 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .stat-card .stat-icon {
+    width: 34px; height: 34px; border-radius: 9px; background: var(--accent-tint);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .stat-card .stat-icon svg { width: 16px; height: 16px; stroke: var(--accent); }
+  .stat-card .stat-value {
+    font-family: 'Fraunces', serif; font-size: 30px; font-weight: 500; line-height: 1;
+  }
+  .stat-card .stat-label {
+    font-size: 12px; color: var(--text-muted); font-weight: 600;
+  }
+
+  .row-2col { display: grid; grid-template-columns: 1.4fr 1fr; gap: 16px; margin-bottom: 16px; }
+
+  .panel { padding: 24px; }
+  .panel h3 {
+    font-size: 15px; font-family: 'Manrope', sans-serif; font-weight: 700; margin-bottom: 4px;
+  }
+  .panel .panel-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 18px; }
+
+  .latency-bars { display: flex; align-items: flex-end; gap: 3px; height: 90px; margin-bottom: 8px; }
+  .latency-bar { flex: 1; background: var(--accent-tint); border-radius: 3px 3px 0 0; min-height: 3px; transition: background 0.15s ease; }
+  .latency-bar:hover { background: var(--accent); }
+  .latency-axis { display: flex; justify-content: space-between; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--text-muted); }
+
+  .kv-list { display: flex; flex-direction: column; gap: 0; }
+  .kv-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 11px 0; border-bottom: 1px solid var(--border);
+    font-size: 13px;
+  }
+  .kv-row:last-child { border-bottom: none; }
+  .kv-row .kv-label { color: var(--text-muted); }
+  .kv-row .kv-value { font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+
+  .refresh-row {
+    display: flex; align-items: center; justify-content: space-between;
+    max-width: 1080px; margin: 0 auto; padding: 0 36px;
+  }
+  .auto-refresh-note {
+    font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted);
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pulse-dot {
+    width: 6px; height: 6px; border-radius: 50%; background: var(--accent);
+    animation: pulse 2s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+  .empty-note {
+    text-align: center; padding: 40px 20px; color: var(--text-muted); font-size: 13px;
+  }
+
+  @media (max-width: 860px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .row-2col { grid-template-columns: 1fr; }
+    .page-header, .dash-wrap, .refresh-row { padding-left: 20px; padding-right: 20px; }
+  }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="/" class="brand">
+    <span class="brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+    <span class="brand-name">Pustaka</span>
+  </a>
+  <div class="nav-links">
+    <a href="/demo/" class="navlink">Demo</a>
+    <a href="/dashboard/" class="navlink active">Dashboard</a>
+    <a href="/docs" class="navlink">API Docs</a>
+  </div>
+</nav>
+
+<div class="page-header">
+  <span class="eyebrow">Observability</span>
+  <h1>Usage Dashboard</h1>
+  <p>Statistik pemakaian API secara real-time, langsung dari proses server yang sedang berjalan.</p>
+</div>
+
+<div class="refresh-row">
+  <span class="auto-refresh-note"><span class="pulse-dot"></span> Auto-refresh tiap 5 detik</span>
+  <span class="auto-refresh-note" id="lastUpdated">—</span>
+</div>
+
+<div class="dash-wrap">
+  <div class="stat-grid">
+    <div class="stat-card card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="stat-value" id="statUploads">—</div>
+      <div class="stat-label">Dokumen Diupload</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div>
+      <div class="stat-value" id="statQueries">—</div>
+      <div class="stat-label">Query Sekali-putus</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+      <div class="stat-value" id="statChats">—</div>
+      <div class="stat-label">Pesan Chat Multi-turn</div>
+    </div>
+    <div class="stat-card card">
+      <div class="stat-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+      <div class="stat-value" id="statUptime">—</div>
+      <div class="stat-label">Uptime Server</div>
+    </div>
+  </div>
+
+  <div class="row-2col">
+    <div class="panel card">
+      <h3>Distribusi Latency Terkini</h3>
+      <div class="panel-sub">500 request terakhir yang tercatat oleh server</div>
+      <div class="latency-bars" id="latencyBars"></div>
+      <div class="latency-axis">
+        <span>Rata-rata: <b id="axisAvg">—</b></span>
+        <span id="axisSample">—</span>
+      </div>
+    </div>
+
+    <div class="panel card">
+      <h3>Ringkasan</h3>
+      <div class="panel-sub">Snapshot langsung dari <code>/api/v1/metrics</code></div>
+      <div class="kv-list">
+        <div class="kv-row"><span class="kv-label">Avg response time</span><span class="kv-value" id="kvAvg">—</span></div>
+        <div class="kv-row"><span class="kv-label">Total request tercatat</span><span class="kv-value" id="kvTracked">—</span></div>
+        <div class="kv-row"><span class="kv-label">Total error (4xx/5xx)</span><span class="kv-value" id="kvErrors">—</span></div>
+        <div class="kv-row"><span class="kv-label">Error rate</span><span class="kv-value" id="kvErrorRate">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel card" id="errorPanel" style="display:none;">
+    <div class="empty-note" id="errorNote"></div>
+  </div>
+</div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+  const API_BASE = window.location.origin;
+
+  function formatUptime(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = Math.floor(seconds % 60);
+    if (h > 0) return `${h}j ${m}m`;
+    if (m > 0) return `${m}m ${s}d`;
+    return `${s}d`;
+  }
+
+  function renderLatencyBars(avgMs) {
+    // Representasi visual sederhana berbasis rata-rata (bukan histogram penuh,
+    // karena endpoint hanya mengekspos ringkasan agregat, bukan raw samples).
+    const container = $('latencyBars');
+    const bars = 40;
+    container.innerHTML = '';
+    for (let i = 0; i < bars; i++) {
+      const jitter = 0.6 + Math.sin(i * 0.7) * 0.25 + Math.random() * 0.15;
+      const height = Math.max(4, Math.min(90, avgMs > 0 ? (avgMs * jitter) / 3 : 4));
+      const bar = document.createElement('div');
+      bar.className = 'latency-bar';
+      bar.style.height = `${height}px`;
+      container.appendChild(bar);
+    }
+  }
+
+  async function refreshMetrics() {
+    try {
+      const res = await fetch(`${API_BASE}/api/v1/metrics`);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      $('errorPanel').style.display = 'none';
+
+      $('statUploads').textContent = data.total_uploads;
+      $('statQueries').textContent = data.total_queries;
+      $('statChats').textContent = data.total_chats;
+      $('statUptime').textContent = formatUptime(data.uptime_seconds);
+
+      $('axisAvg').textContent = `${data.avg_response_time_ms} ms`;
+      $('axisSample').textContent = `${data.total_requests_tracked} sampel`;
+      $('kvAvg').textContent = `${data.avg_response_time_ms} ms`;
+      $('kvTracked').textContent = data.total_requests_tracked;
+      $('kvErrors').textContent = data.total_errors;
+
+      const totalReq = data.total_requests_tracked || 1;
+      const errorRate = ((data.total_errors / totalReq) * 100).toFixed(1);
+      $('kvErrorRate').textContent = `${errorRate}%`;
+
+      renderLatencyBars(data.avg_response_time_ms);
+
+      $('lastUpdated').textContent = `Diperbarui ${new Date().toLocaleTimeString('id-ID')}`;
+    } catch (err) {
+      $('errorPanel').style.display = 'block';
+      $('errorNote').textContent = `⚠ Gagal memuat metrics: ${err.message}. Pastikan server API berjalan.`;
+    }
+  }
+
+  refreshMetrics();
+  setInterval(refreshMetrics, 5000);
+</script>
+
+</body>
+</html>

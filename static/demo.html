@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Pustaka — Document Intelligence</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Manrope:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/theme.css">
+<style>
+  body { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+
+  .app { display: grid; grid-template-columns: 300px 1fr; flex: 1; min-height: 0; }
+
+  /* ---- Sidebar ---- */
+  .sidebar {
+    background: var(--ink);
+    color: #E7E8EC;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 22px;
+    overflow-y: auto;
+  }
+  .side-section { display: flex; flex-direction: column; gap: 10px; }
+  .side-label {
+    font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em;
+    color: var(--ink-muted); font-weight: 600;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .side-label button.link {
+    background: none; border: none; padding: 0; color: var(--ink-muted);
+    font-size: 10.5px; font-family: 'Manrope', sans-serif; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 3px;
+    text-transform: none; letter-spacing: 0;
+  }
+  .side-label button.link:hover { color: #E7E8EC; }
+  .side-label button.link svg { width: 11px; height: 11px; }
+
+  .upload-zone {
+    border: 1.5px dashed var(--ink-border); border-radius: 10px; padding: 16px 12px;
+    text-align: center; cursor: pointer; transition: all 0.15s ease;
+    font-size: 12px; color: var(--ink-muted);
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+  }
+  .upload-zone svg { width: 18px; height: 18px; stroke: var(--ink-muted); transition: stroke 0.15s ease; }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--accent); background: #1A2A25; color: #C9E4DA; }
+  .upload-zone:hover svg, .upload-zone.dragover svg { stroke: #A8DDCB; }
+  .upload-zone input { display: none; }
+
+  .status-line { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--ink-muted); min-height: 14px; line-height: 1.5; }
+  .status-line.error { color: #E3897D; }
+  .status-line.success { color: #A8DDCB; }
+
+  .doc-list { display: flex; flex-direction: column; gap: 2px; max-height: 150px; overflow-y: auto; }
+  .doc-row { display: flex; align-items: center; gap: 8px; padding: 7px 8px; border-radius: 7px; font-size: 12px; color: #C7CAD1; transition: background 0.12s ease; }
+  .doc-row:hover { background: var(--ink-2); }
+  .doc-row svg.doc-icon { width: 13px; height: 13px; stroke: var(--ink-muted); flex-shrink: 0; }
+  .doc-row .doc-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: 'IBM Plex Mono', monospace; font-size: 11.5px; }
+  .doc-row .doc-delete { opacity: 0; background: none; border: none; padding: 3px; cursor: pointer; color: var(--ink-muted); border-radius: 4px; display: flex; transition: opacity 0.12s ease, color 0.12s ease, background 0.12s ease; }
+  .doc-row:hover .doc-delete { opacity: 1; }
+  .doc-row .doc-delete:hover { color: #E3897D; background: var(--error-soft); }
+  .doc-row .doc-delete svg { width: 13px; height: 13px; }
+  .doc-empty { font-size: 11.5px; color: var(--ink-muted); font-style: italic; padding: 4px 2px; }
+
+  .divider-side { height: 1px; background: var(--ink-border); }
+  .session-id { font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; color: var(--ink-muted); word-break: break-all; line-height: 1.5; }
+
+  /* ---- Main ---- */
+  .main { display: flex; flex-direction: column; min-height: 0; }
+  .topbar { padding: 16px 32px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .topbar-title { display: flex; flex-direction: column; gap: 2px; }
+  .breadcrumb { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); }
+  .breadcrumb b { color: var(--accent-strong); font-weight: 600; }
+  .topbar h1 { font-size: 18px; }
+
+  .chat-scroll { flex: 1; overflow-y: auto; padding: 32px; display: flex; flex-direction: column; gap: 24px; min-height: 0; }
+
+  .empty-state { margin: auto; text-align: center; max-width: 460px; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+  .empty-icon { width: 50px; height: 50px; border-radius: 14px; background: var(--accent-tint); display: flex; align-items: center; justify-content: center; }
+  .empty-icon svg { width: 22px; height: 22px; stroke: var(--accent); }
+  .empty-state h2 { font-size: 22px; line-height: 1.3; }
+  .empty-state p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; margin: 0; }
+  .starter-prompts { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-top: 2px; }
+  .starter-chip {
+    font-family: 'Manrope', sans-serif; font-size: 12.5px; font-weight: 500;
+    background: var(--surface); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: 20px; cursor: pointer;
+    transition: all 0.15s ease; box-shadow: var(--shadow-sm);
+  }
+  .starter-chip:hover { border-color: var(--accent); color: var(--accent-strong); transform: translateY(-1px); box-shadow: var(--shadow-md); }
+
+  .msg-row { display: flex; flex-direction: column; gap: 8px; max-width: 660px; animation: rise 0.28s ease; }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  .msg-row.user { align-self: flex-end; align-items: flex-end; }
+  .msg-row.assistant { align-self: flex-start; align-items: flex-start; }
+  .msg-meta { display: flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 10.5px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+  .msg-avatar { width: 16px; height: 16px; border-radius: 4px; display: flex; align-items: center; justify-content: center; }
+  .msg-row.user .msg-avatar { background: #DCDAD0; }
+  .msg-row.assistant .msg-avatar { background: var(--accent); }
+  .msg-avatar svg { width: 9px; height: 9px; stroke: white; }
+  .msg-row.user .msg-avatar svg { stroke: #4A4840; }
+
+  .bubble { padding: 13px 17px; border-radius: var(--radius); font-size: 14.5px; line-height: 1.7; white-space: pre-wrap; }
+  .msg-row.user .bubble { background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-sm); border-top-right-radius: 3px; }
+  .msg-row.assistant .bubble { background: var(--surface); border: 1px solid var(--border); border-left: 3px solid var(--accent); box-shadow: var(--shadow-sm); border-top-left-radius: 3px; }
+
+  .cursor-blink { display: inline-block; width: 6px; height: 14px; background: var(--accent); margin-left: 2px; vertical-align: text-bottom; animation: blink 1s step-end infinite; border-radius: 1px; }
+  @keyframes blink { 50% { opacity: 0; } }
+
+  .citations { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 2px; }
+  .citation-card { display: inline-flex; align-items: center; gap: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-muted); background: var(--accent-tint); border: 1px solid #D5E4DE; border-radius: 7px; padding: 6px 10px; cursor: default; transition: background 0.15s ease; }
+  .citation-card:hover { background: #DDEBE4; }
+  .citation-card .cite-num { font-weight: 700; color: var(--accent-strong); background: var(--surface); border-radius: 4px; width: 15px; height: 15px; display: inline-flex; align-items: center; justify-content: center; font-size: 9.5px; }
+  .citation-card b { color: var(--text); font-weight: 600; }
+
+  .composer-wrap { padding: 16px 32px 24px 32px; }
+  .composer { display: flex; align-items: center; gap: 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 24px; padding: 6px 6px 6px 18px; box-shadow: var(--shadow-md); max-width: 660px; margin: 0 auto; }
+  .composer input { flex: 1; border: none; outline: none; background: transparent; font-family: 'Manrope', sans-serif; font-size: 14px; color: var(--text); padding: 8px 0; }
+  .composer input::placeholder { color: #A4A29A; }
+  .send-btn { width: 38px; height: 38px; border-radius: 50%; background: var(--accent); border: none; display: flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; transition: background 0.15s ease, transform 0.08s ease; }
+  .send-btn:hover:not(:disabled) { background: var(--accent-strong); }
+  .send-btn:active { transform: scale(0.94); }
+  .send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .send-btn svg { width: 15px; height: 15px; stroke: #F6F5F1; }
+  .composer-hint { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 9px; font-family: 'IBM Plex Mono', monospace; }
+
+  @media (max-width: 860px) {
+    body { overflow: auto; height: auto; }
+    .app { grid-template-columns: 1fr; }
+    .site-nav { padding: 14px 20px; }
+    .topbar { padding: 14px 20px; }
+    .chat-scroll { padding: 20px; }
+    .composer-wrap { padding: 12px 20px 20px 20px; }
+  }
+
+  /* ===== Toast: notifikasi sukses / error / info ===== */
+  .toast-stack { position: fixed; top: 18px; right: 18px; z-index: 1000; display: flex; flex-direction: column; gap: 10px; width: min(380px, calc(100vw - 36px)); pointer-events: none; }
+  .toast { pointer-events: auto; display: flex; gap: 12px; align-items: flex-start; padding: 13px 14px; background: var(--surface); border: 1px solid var(--border); border-left-width: 4px; border-radius: 10px; box-shadow: 0 8px 28px rgba(20,22,27,0.14); animation: toast-in 0.25s ease; }
+  .toast.hide { animation: toast-out 0.2s ease forwards; }
+  .toast .t-icon { width: 20px; height: 20px; flex-shrink: 0; margin-top: 1px; }
+  .toast .t-body { flex: 1; min-width: 0; }
+  .toast .t-title { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+  .toast .t-msg { font-size: 12.5px; line-height: 1.5; color: var(--text-muted); word-wrap: break-word; }
+  .toast .t-close { background: none; border: none; padding: 2px; cursor: pointer; color: var(--text-muted); font-size: 18px; line-height: 1; border-radius: 4px; }
+  .toast .t-close:hover { color: var(--text); }
+  .toast.success { border-left-color: #2F8F5B; } .toast.success .t-icon { color: #2F8F5B; }
+  .toast.error   { border-left-color: var(--error); } .toast.error .t-icon { color: var(--error); }
+  .toast.info    { border-left-color: var(--accent); } .toast.info .t-icon { color: var(--accent); }
+  @keyframes toast-in  { from { opacity: 0; transform: translateX(16px); } to { opacity: 1; transform: none; } }
+  @keyframes toast-out { to { opacity: 0; transform: translateX(16px); } }
+  @media (prefers-reduced-motion: reduce) { .toast, .toast.hide { animation: none; } }
+</style>
+</head>
+<body>
+
+<nav class="site-nav">
+  <a href="/" class="brand">
+    <span class="brand-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+    <span class="brand-name">Pustaka</span>
+  </a>
+  <div class="nav-links">
+    <a href="/demo/" class="navlink active">Demo</a>
+    <a href="/dashboard/" class="navlink">Dashboard</a>
+    <a href="/docs" class="navlink">API Docs</a>
+  </div>
+</nav>
+
+<div class="app">
+  <aside class="sidebar">
+    <span class="status-pill"><span class="status-dot"></span> Terhubung</span>
+
+    <div class="side-section">
+      <label class="side-label" for="apiBase">API Base URL</label>
+      <input type="text" id="apiBase" class="side-input" value="http://localhost:8000" />
+    </div>
+    <div class="side-section">
+      <label class="side-label" for="apiKey">API Key <span style="text-transform:none;font-weight:400;">opsional</span></label>
+      <input type="password" id="apiKey" class="side-input" placeholder="X-API-Key" />
+    </div>
+
+    <div class="divider-side"></div>
+
+    <div class="side-section">
+      <label class="side-label" for="collection">Workspace</label>
+      <input type="text" id="collection" class="side-input" value="default" />
+    </div>
+
+    <div class="side-section">
+      <span class="side-label">Upload Dokumen</span>
+      <label class="upload-zone" id="dropZone">
+        <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Klik atau tarik PDF ke sini</span>
+        <input type="file" id="fileInput" accept="application/pdf" />
+      </label>
+      <div class="status-line" id="uploadStatus"></div>
+    </div>
+
+    <div class="side-section">
+      <div class="side-label">
+        <span>Dokumen Terindeks</span>
+        <button class="link" id="refreshDocs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+          refresh
+        </button>
+      </div>
+      <div class="doc-list" id="docList"><div class="doc-empty">Belum ada dokumen</div></div>
+    </div>
+
+    <div class="divider-side"></div>
+
+    <div class="side-section">
+      <span class="side-label">Session</span>
+      <div class="session-id" id="sessionLabel"></div>
+    </div>
+
+    <button class="btn btn-outline-dark" id="resetSession">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>
+      Percakapan baru
+    </button>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-title">
+        <span class="breadcrumb">Workspace / <b id="breadcrumbCollection">default</b></span>
+        <h1>Tanya Jawab Dokumen</h1>
+      </div>
+      <span class="badge">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+        Groq · Llama 3.1
+      </span>
+    </div>
+
+    <div class="chat-scroll" id="chatScroll">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        </div>
+        <h2>Tanyakan apa saja tentang<br/>dokumen Anda.</h2>
+        <p>Upload PDF di panel kiri, lalu mulai bertanya. Percakapan ini mengingat konteks — pertanyaan lanjutan tidak perlu mengulang detail sebelumnya.</p>
+        <div class="starter-prompts">
+          <button class="starter-chip" data-prompt="Ringkas isi dokumen ini dalam 3 poin utama">Ringkas dokumen ini</button>
+          <button class="starter-chip" data-prompt="Apa temuan atau angka paling penting di dalamnya?">Temuan paling penting?</button>
+          <button class="starter-chip" data-prompt="Jelaskan seolah saya belum pernah membaca dokumen ini">Jelaskan untuk pemula</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer-wrap">
+      <form class="composer" id="composerForm">
+        <input type="text" id="questionInput" placeholder="Tanyakan sesuatu tentang dokumen Anda…" autocomplete="off" />
+        <button type="submit" class="send-btn" id="sendBtn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+        </button>
+      </form>
+      <div class="composer-hint">Jawaban dihasilkan dari dokumen yang Anda upload, lengkap dengan sumber kutipannya.</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+<script>
+  const $ = (id) => document.getElementById(id);
+
+  // Persist setting antar halaman (demo <-> dashboard) via localStorage
+  $('apiBase').value = localStorage.getItem('pustaka_api_base') || $('apiBase').value;
+  $('apiKey').value = localStorage.getItem('pustaka_api_key') || '';
+  $('apiBase').addEventListener('change', () => localStorage.setItem('pustaka_api_base', $('apiBase').value.trim()));
+  $('apiKey').addEventListener('change', () => localStorage.setItem('pustaka_api_key', $('apiKey').value.trim()));
+
+  let sessionId = crypto.randomUUID();
+  $('sessionLabel').textContent = sessionId;
+
+  function headers(extra = {}) {
+    const h = { ...extra };
+    const key = $('apiKey').value.trim();
+    if (key) h['X-API-Key'] = key;
+    return h;
+  }
+
+  // ===== Toast =====
+  // showToast('success' | 'error' | 'info', judul, pesan, lamaTampilMs)
+  const TOAST_ICONS = {
+    success: '<svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="8 12.5 11 15.5 16 9.5"/></svg>',
+    error:   '<svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="7.5" x2="12" y2="13"/><circle cx="12" cy="16.5" r="0.6" fill="currentColor"/></svg>',
+    info:    '<svg class="t-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="16.5"/><circle cx="12" cy="7.8" r="0.6" fill="currentColor"/></svg>',
+  };
+  function showToast(type, title, message = '', duration = 5000) {
+    const el = document.createElement('div');
+    el.className = `toast ${type}`;
+    el.setAttribute('role', type === 'error' ? 'alert' : 'status');
+    // textContent (bukan innerHTML) untuk teks dari server -> aman dari injeksi HTML.
+    el.innerHTML = `${TOAST_ICONS[type]}<div class="t-body"><div class="t-title"></div><div class="t-msg"></div></div><button class="t-close" aria-label="Tutup">×</button>`;
+    el.querySelector('.t-title').textContent = title;
+    el.querySelector('.t-msg').textContent = message;
+    const close = () => { el.classList.add('hide'); setTimeout(() => el.remove(), 200); };
+    el.querySelector('.t-close').addEventListener('click', close);
+    $('toastStack').appendChild(el);
+    if (duration > 0) setTimeout(close, duration);
+    return close; // dipakai untuk menutup toast "info" (loading) secara manual
+  }
+  // Ubah error JavaScript jadi pesan yang mudah dipahami.
+  function errorText(err) {
+    if (err instanceof TypeError) return `Tidak bisa terhubung ke server di ${apiBase()}. Pastikan server berjalan.`;
+    return err.message || 'Terjadi kesalahan yang tidak diketahui.';
+  }
+
+  // Ambil pesan yang mudah dibaca dari respons GAGAL server. Server bisa menjawab dalam beberapa bentuk:
+  //  - {detail: "teks"}          -> error biasa dari aplikasi kita
+  //  - {detail: [{msg: ...}]}    -> error validasi FastAPI (berupa DAFTAR; tanpa penanganan ini tampil "[object Object]")
+  //  - {error: "Rate limit ..."} -> format milik library slowapi (batas permintaan per menit), tanpa kunci "detail"
+  function errorFrom(res, data, fallback) {
+    const d = data && data.detail;
+    if (Array.isArray(d)) return 'Input tidak valid: ' + d.map(x => x.msg).join('; ');
+    if (typeof d === 'string' && d) return d;
+    if (res.status === 429) return 'Terlalu banyak permintaan dalam waktu singkat. Tunggu sekitar 1 menit lalu coba lagi.';
+    if (data && data.error) return data.error;
+    return `${fallback} (kode ${res.status})`;
+  }
+  // Ubah karakter khusus HTML (< > & " ') jadi aman. Wajib dipakai SETIAP kali teks dari luar
+  // (nama file, pesan server) disisipkan lewat innerHTML; kalau tidak, nama file seperti
+  // `<img onerror=...>` bisa menjalankan kode di browser (serangan XSS).
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  function apiBase() { return $('apiBase').value.trim().replace(/\/$/, ''); }
+  function currentCollection() { return $('collection').value.trim() || 'default'; }
+
+  $('collection').addEventListener('input', () => { $('breadcrumbCollection').textContent = currentCollection(); });
+
+  const dropZone = $('dropZone');
+  const fileInput = $('fileInput');
+  dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files.length) uploadFile(e.dataTransfer.files[0]); });
+  fileInput.addEventListener('change', () => { if (fileInput.files.length) uploadFile(fileInput.files[0]); });
+
+  async function uploadFile(file) {
+    const statusEl = $('uploadStatus');
+    statusEl.className = 'status-line';
+    statusEl.textContent = `Mengupload ${file.name}…`;
+    // Toast "loading" tetap tampil (duration 0) sampai proses selesai. Indexing PDF bisa
+    // memakan beberapa detik; kali pertama lebih lama karena model embedding diunduh.
+    const closeLoading = showToast('info', 'Memproses dokumen…', `${file.name} sedang dibaca dan diindeks. Upload pertama bisa lebih lama.`, 0);
+    const form = new FormData();
+    form.append('file', file);
+    form.append('collection', currentCollection());
+    try {
+      const res = await fetch(`${apiBase()}/api/v1/upload`, { method: 'POST', headers: headers(), body: form });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(errorFrom(res, data, 'Upload gagal'));
+      statusEl.className = 'status-line success';
+      statusEl.textContent = `✓ ${data.filename} — ${data.num_chunks} chunk terindeks`;
+      showToast('success', 'Dokumen berhasil diupload', `${data.filename}: ${data.num_pages} halaman, ${data.num_chunks} potongan teks terindeks.`);
+      loadDocuments();
+    } catch (err) {
+      statusEl.className = 'status-line error';
+      statusEl.textContent = `✗ ${errorText(err)}`;
+      showToast('error', 'Upload gagal', errorText(err), 8000);
+    } finally { closeLoading(); fileInput.value = ''; }
+  }
+
+  function docIconSvg() { return `<svg class="doc-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`; }
+  function trashIconSvg() { return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>`; }
+
+  async function loadDocuments() {
+    const collection = currentCollection();
+    const listEl = $('docList');
+    try {
+      const res = await fetch(`${apiBase()}/api/v1/collections/${encodeURIComponent(collection)}/documents`, { headers: headers() });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(errorFrom(res, data, 'Gagal memuat daftar dokumen'));
+      if (!data.documents.length) { listEl.innerHTML = '<div class="doc-empty">Belum ada dokumen</div>'; return; }
+      // escapeHtml(d): nama file berasal dari luar, jadi harus di-escape sebelum masuk innerHTML.
+      // Saat tombol hapus diklik, btn.dataset.delete otomatis memberi nama ASLI (browser membalik escape).
+      listEl.innerHTML = data.documents.map(d => `
+        <div class="doc-row">
+          ${docIconSvg()}
+          <span class="doc-name" title="${escapeHtml(d)}">${escapeHtml(d)}</span>
+          <button class="doc-delete" title="Hapus dokumen ini" data-delete="${escapeHtml(d)}">${trashIconSvg()}</button>
+        </div>`).join('');
+      listEl.querySelectorAll('[data-delete]').forEach(btn => btn.addEventListener('click', () => deleteDocument(btn.dataset.delete)));
+    } catch (err) {
+      listEl.innerHTML = `<div class="doc-empty" style="color: var(--error)">${escapeHtml(errorText(err))}</div>`;
+    }
+  }
+
+  async function deleteDocument(filename) {
+    if (!confirm(`Hapus "${filename}" dari workspace ini?`)) return;
+    try {
+      const res = await fetch(`${apiBase()}/api/v1/collections/${encodeURIComponent(currentCollection())}/documents/${encodeURIComponent(filename)}`, { method: 'DELETE', headers: headers() });
+      if (!res.ok) { const data = await res.json().catch(() => ({})); throw new Error(errorFrom(res, data, 'Gagal menghapus')); }
+      showToast('success', 'Dokumen dihapus', `"${filename}" sudah dihapus dari workspace.`);
+      loadDocuments();
+    } catch (err) { showToast('error', 'Gagal menghapus dokumen', errorText(err), 8000); }
+  }
+
+  $('refreshDocs').addEventListener('click', (e) => { e.preventDefault(); loadDocuments(); });
+  $('collection').addEventListener('change', loadDocuments);
+
+  $('resetSession').addEventListener('click', async () => {
+    try { await fetch(`${apiBase()}/api/v1/chat/${sessionId}`, { method: 'DELETE', headers: headers() }); } catch (_) {}
+    sessionId = crypto.randomUUID();
+    $('sessionLabel').textContent = sessionId;
+    chatScroll.innerHTML = originalEmptyStateHTML;
+    bindStarterPrompts();
+    showToast('success', 'Percakapan baru dimulai', 'Riwayat percakapan sebelumnya sudah dihapus.', 3000);
+  });
+
+  const chatScroll = $('chatScroll');
+  const originalEmptyStateHTML = chatScroll.innerHTML;
+  const composerForm = $('composerForm');
+  const questionInput = $('questionInput');
+  const sendBtn = $('sendBtn');
+
+  function bindStarterPrompts() {
+    document.querySelectorAll('.starter-chip').forEach(chip => {
+      chip.addEventListener('click', () => { questionInput.value = chip.dataset.prompt; composerForm.requestSubmit(); });
+    });
+  }
+  bindStarterPrompts();
+
+  function clearEmptyState() { const empty = document.getElementById('emptyState'); if (empty) empty.remove(); }
+
+  function appendMessage(role, text) {
+    clearEmptyState();
+    const row = document.createElement('div');
+    row.className = `msg-row ${role}`;
+    const avatarSvg = role === 'user'
+      ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="8" r="4"/><path d="M4 21v-1a8 8 0 0 1 16 0v1"/></svg>`
+      : `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>`;
+    row.innerHTML = `<div class="msg-meta"><span class="msg-avatar">${avatarSvg}</span>${role === 'user' ? 'Anda' : 'Asisten'}</div><div class="bubble"></div>`;
+    row.querySelector('.bubble').textContent = text;
+    chatScroll.appendChild(row);
+    chatScroll.scrollTop = chatScroll.scrollHeight;
+    return row;
+  }
+
+  function renderCitations(container, sources) {
+    if (!sources || !sources.length) return;
+    // Gabungkan sumber dengan file + halaman yang sama jadi SATU kartu (skor = yang tertinggi),
+    // supaya tidak tampil beberapa kartu "hal. 1" yang membingungkan. Cuplikan ada di tooltip.
+    const groups = new Map();
+    sources.forEach(s => {
+      const key = `${s.source}||${s.page}`;
+      if (!groups.has(key)) groups.set(key, { source: s.source, page: s.page, score: s.score, snippets: [] });
+      const g = groups.get(key);
+      if (typeof s.score === 'number' && (typeof g.score !== 'number' || s.score > g.score)) g.score = s.score;
+      if (s.snippet) g.snippets.push(s.snippet);
+    });
+    const cards = [...groups.values()].sort((a, b) => (a.page ?? 0) - (b.page ?? 0));
+    const wrap = document.createElement('div');
+    wrap.className = 'citations';
+    wrap.innerHTML = cards.map((g, i) => `<span class="citation-card" title="${escapeHtml(g.snippets.join('\n---\n'))}"><span class="cite-num">${i + 1}</span><b>${escapeHtml(g.source)}</b>${g.page !== null && g.page !== undefined ? ` · hal. ${g.page}` : ''}${typeof g.score === 'number' ? ` · ${Math.round(g.score * 100)}%` : ''}</span>`).join('');
+    container.appendChild(wrap);
+  }
+
+  composerForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const question = questionInput.value.trim();
+    if (!question) return;
+    appendMessage('user', question);
+    questionInput.value = '';
+    sendBtn.disabled = true;
+    const assistantRow = appendMessage('assistant', '');
+    const bubble = assistantRow.querySelector('.bubble');
+    const cursor = document.createElement('span');
+    cursor.className = 'cursor-blink';
+    bubble.appendChild(cursor);
+    const collection = currentCollection();
+    try {
+      const res = await fetch(`${apiBase()}/api/v1/chat/stream`, { method: 'POST', headers: headers({ 'Content-Type': 'application/json' }), body: JSON.stringify({ session_id: sessionId, question, collection }) });
+      if (!res.ok) { const errData = await res.json().catch(() => ({})); throw new Error(errorFrom(res, errData, 'Gagal menjawab')); }
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '', fullText = '';
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop();
+        for (const line of lines) {
+          if (!line.startsWith('data: ')) continue;
+          const payload = JSON.parse(line.slice(6));
+          if (payload.token) { fullText += payload.token; bubble.textContent = fullText; bubble.appendChild(cursor); chatScroll.scrollTop = chatScroll.scrollHeight; }
+          else if (payload.done) { cursor.remove(); renderCitations(assistantRow, payload.sources); }
+          else if (payload.error) { cursor.remove(); bubble.textContent = `⚠ ${payload.error}`; showToast('error', 'Gagal menjawab', payload.error, 8000); }
+        }
+      }
+    } catch (err) {
+      cursor.remove();
+      bubble.textContent = `⚠ ${errorText(err)}`;
+      showToast('error', 'Gagal menjawab', errorText(err), 8000);
+    } finally { sendBtn.disabled = false; questionInput.focus(); }
+  });
+
+  loadDocuments();
+</script>
+</body>
+</html>
